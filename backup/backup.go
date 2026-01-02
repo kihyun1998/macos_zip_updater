@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/acra/flutter_macos_updater/logger"
+	"github.com/kihyun1998/macos_zip_updater/logger"
 )
 
 // MoveAppToBackup 백업 함수

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/acra/flutter_macos_updater/logger"
+	"github.com/kihyun1998/macos_zip_updater/logger"
 )
 
 // InstallNewApp 새 앱을 설치합니다.

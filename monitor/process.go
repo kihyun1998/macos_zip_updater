@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/acra/flutter_macos_updater/logger"
+	"github.com/kihyun1998/macos_zip_updater/logger"
 )
 
 // IsProcessAlive 프로세스가 살아있는지 검사하는 함수

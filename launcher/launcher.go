@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/acra/flutter_macos_updater/logger"
+	"github.com/kihyun1998/macos_zip_updater/logger"
 )
 
 // LaunchApp 앱을 실행합니다.

@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/acra/flutter_macos_updater/backup"
-	"github.com/acra/flutter_macos_updater/installer"
-	"github.com/acra/flutter_macos_updater/launcher"
-	"github.com/acra/flutter_macos_updater/logger"
-	"github.com/acra/flutter_macos_updater/monitor"
+	"github.com/kihyun1998/macos_zip_updater/backup"
+	"github.com/kihyun1998/macos_zip_updater/installer"
+	"github.com/kihyun1998/macos_zip_updater/launcher"
+	"github.com/kihyun1998/macos_zip_updater/logger"
+	"github.com/kihyun1998/macos_zip_updater/monitor"
 )
 
 func main() {
