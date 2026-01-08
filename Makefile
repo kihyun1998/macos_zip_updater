@@ -9,8 +9,12 @@ BIN_DIR=bin
 AMD64_BINARY=$(BIN_DIR)/$(BINARY_NAME)_AMD64
 ARM64_BINARY=$(BIN_DIR)/$(BINARY_NAME)_ARM64
 UNIVERSAL_BINARY=$(BIN_DIR)/$(BINARY_NAME)
+ENTITLEMENTS=updater.entitlements
 
-.PHONY: all build clean help
+# Code signing identity (set via environment variable or override)
+SIGNING_IDENTITY=Developer ID Application: PENTA SYSTEMS TECHNOLOGY INC. (CJ2KJJN35D)
+
+.PHONY: all build clean help sign
 
 all: build
 
@@ -22,8 +26,12 @@ help:
 	@echo ""
 	@echo "Commands:"
 	@echo "  build    - Build universal binary (AMD64 + ARM64)"
+	@echo "  sign     - Code sign the universal binary"
 	@echo "  clean    - Clean build artifacts"
 	@echo "  help     - Show this help message"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  SIGNING_IDENTITY - Code signing identity (default: Developer ID Application)"
 	@echo "============================================================================"
 
 build:
@@ -42,6 +50,36 @@ build:
 	@echo "Universal binary: $(UNIVERSAL_BINARY)"
 	@echo "============================================================================"
 	@lipo -info $(UNIVERSAL_BINARY)
+
+sign:
+	@echo "============================================================================"
+	@echo "Code signing ACRA_Point_Client_Updater..."
+	@echo "============================================================================"
+	@BINARY="$${BINARY_PATH:-$(UNIVERSAL_BINARY)}"; \
+	echo "Signing with: $(SIGNING_IDENTITY)"; \
+	echo "Target binary: $$BINARY"; \
+	echo "Entitlements: $(ENTITLEMENTS)"; \
+	echo ""; \
+	if [ ! -f "$$BINARY" ]; then \
+		echo "ERROR: Binary not found: $$BINARY"; \
+		exit 1; \
+	fi; \
+	if [ ! -f "$(ENTITLEMENTS)" ]; then \
+		echo "ERROR: Entitlements file not found: $(ENTITLEMENTS)"; \
+		exit 1; \
+	fi; \
+	echo "Removing existing signature..."; \
+	codesign --remove-signature "$$BINARY" 2>/dev/null || true; \
+	echo "Signing binary with entitlements..."; \
+	codesign --force --timestamp --options runtime \
+		--entitlements "$(ENTITLEMENTS)" \
+		--sign "$(SIGNING_IDENTITY)" \
+		"$$BINARY"; \
+	echo "Verifying signature..."; \
+	codesign --verify --deep --strict --verbose=2 "$$BINARY"; \
+	echo "============================================================================"; \
+	echo "Code signing completed successfully!"; \
+	echo "============================================================================"
 
 clean:
 	@echo "Cleaning build artifacts..."

@@ -15,22 +15,83 @@ import (
 )
 
 func main() {
-	// 인자: [부모 PID, 로그 파일 경로, Flutter 앱 경로, 압축 해제된 폴더 경로, 백업 경로]
-	if len(os.Args) < 6 {
-		fmt.Fprintln(os.Stderr, "Usage: ACRA_Point_Client_Updater <parent_pid> <log_file_path> <app_path> <extracted_folder_path> <backup_path>")
+	// 첫 번째 인자로 모드 확인
+	if len(os.Args) < 2 {
+		printUsage()
 		os.Exit(1)
 	}
 
-	parentPid, err := strconv.Atoi(os.Args[1])
+	mode := os.Args[1]
+
+	switch mode {
+	case "--restart":
+		handleRestartMode()
+	case "--update":
+		handleUpdateMode()
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown mode: %s\n", mode)
+		printUsage()
+		os.Exit(1)
+	}
+}
+
+func printUsage() {
+	fmt.Fprintln(os.Stderr, "Usage:")
+	fmt.Fprintln(os.Stderr, "  Restart mode: ACRA_Point_Client_Updater --restart <parent_pid> <log_file_path> <app_path>")
+	fmt.Fprintln(os.Stderr, "  Update mode:  ACRA_Point_Client_Updater --update <parent_pid> <log_file_path> <app_path> <extracted_folder_path> <backup_path>")
+}
+
+func handleRestartMode() {
+	// 인자: [--restart, 부모 PID, 로그 파일 경로, 앱 경로]
+	if len(os.Args) < 5 {
+		fmt.Fprintln(os.Stderr, "Restart mode requires: <parent_pid> <log_file_path> <app_path>")
+		os.Exit(1)
+	}
+
+	parentPid, err := strconv.Atoi(os.Args[2])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid parent PID: %v\n", err)
 		os.Exit(1)
 	}
 
-	logFilePath := os.Args[2]
-	appPath := os.Args[3]
-	extractedFolderPath := os.Args[4]
-	backupPath := os.Args[5]
+	logFilePath := os.Args[3]
+	appPath := os.Args[4]
+
+	// Logger 초기화
+	log := logger.GetInstance()
+	if err := log.Initialize(logFilePath); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+
+	currentPid := os.Getpid()
+
+	// 시작 로그 기록
+	log.Log(fmt.Sprintf("Restarter started (PID: %d)", currentPid))
+	log.Log(fmt.Sprintf("Parent PID: %d", parentPid))
+	log.Log(fmt.Sprintf("App path: %s", appPath))
+
+	// 재시작 실행
+	runRestart(parentPid, appPath)
+}
+
+func handleUpdateMode() {
+	// 인자: [--update, 부모 PID, 로그 파일 경로, Flutter 앱 경로, 압축 해제된 폴더 경로, 백업 경로]
+	if len(os.Args) < 7 {
+		fmt.Fprintln(os.Stderr, "Update mode requires: <parent_pid> <log_file_path> <app_path> <extracted_folder_path> <backup_path>")
+		os.Exit(1)
+	}
+
+	parentPid, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid parent PID: %v\n", err)
+		os.Exit(1)
+	}
+
+	logFilePath := os.Args[3]
+	appPath := os.Args[4]
+	extractedFolderPath := os.Args[5]
+	backupPath := os.Args[6]
 
 	// Logger 초기화
 	log := logger.GetInstance()
@@ -54,10 +115,24 @@ func main() {
 	}
 
 	// 업데이트 실행
-	run(appPath, extractedFolderPath, backupPath)
+	runUpdate(appPath, extractedFolderPath, backupPath)
 }
 
-func run(appPath, extractedPath, backupPath string) {
+func runRestart(parentPid int, appPath string) {
+	log := logger.GetInstance()
+
+	// 부모 프로세스 모니터링
+	if err := monitor.MonitorParentProcess(parentPid); err != nil {
+		log.Error(err)
+	}
+
+	// 앱 재실행
+	launcher.LaunchApp(appPath)
+	log.Log("Restart completed, exiting...")
+	os.Exit(0)
+}
+
+func runUpdate(appPath, extractedPath, backupPath string) {
 	log := logger.GetInstance()
 
 	defer func() {
