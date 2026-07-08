@@ -10,6 +10,8 @@ AMD64_BINARY=$(BIN_DIR)/$(BINARY_NAME)_AMD64
 ARM64_BINARY=$(BIN_DIR)/$(BINARY_NAME)_ARM64
 UNIVERSAL_BINARY=$(BIN_DIR)/$(BINARY_NAME)
 ENTITLEMENTS=updater.entitlements
+VERSION=$(shell git describe --tags --always --dirty)
+LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
 # Code signing identity (set via environment variable or override)
 SIGNING_IDENTITY=Developer ID Application: PENTA SYSTEMS TECHNOLOGY INC. (CJ2KJJN35D)
@@ -40,9 +42,9 @@ build:
 	@echo "============================================================================"
 	@mkdir -p $(BIN_DIR)
 	@echo "[1/3] Building ARM64 binary..."
-	GOOS=darwin GOARCH=arm64 go build -o $(ARM64_BINARY) main.go
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(ARM64_BINARY) main.go
 	@echo "[2/3] Building AMD64 binary..."
-	GOOS=darwin GOARCH=amd64 go build -o $(AMD64_BINARY) main.go
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(AMD64_BINARY) main.go
 	@echo "[3/3] Creating Universal Binary..."
 	lipo -create -output $(UNIVERSAL_BINARY) $(AMD64_BINARY) $(ARM64_BINARY)
 	@echo "============================================================================"

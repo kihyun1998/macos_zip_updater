@@ -14,6 +14,11 @@ import (
 	"github.com/kihyun1998/macos_zip_updater/monitor"
 )
 
+// version is the build version, injected at build time via
+// -ldflags "-X main.version=$(git describe --tags --always --dirty)".
+// Defaults to "dev" for plain `go build`. See README "Versioning & Release".
+var version = "dev"
+
 func main() {
 	// 첫 번째 인자로 모드 확인
 	if len(os.Args) < 2 {
@@ -24,6 +29,8 @@ func main() {
 	mode := os.Args[1]
 
 	switch mode {
+	case "--version", "-v", "version":
+		fmt.Println(version)
 	case "--restart":
 		handleRestartMode()
 	case "--update":
