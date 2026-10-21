@@ -11,6 +11,24 @@ starts it detached and quits itself about a second later
 `permission_step_widget.dart` for `--restart`). An updater that exits without
 relaunching leaves the user with no app running.
 
+## Which bundle comes back
+
+The relaunch opens the bundle at `app_path` (`open <app_path>`), never by app
+name. acra_client passes the path of the bundle that was running, and its
+installed and portable builds share one bundle name and ID
+(`macos/Runner/Configs/AppInfo.xcconfig`: `ACRAPointClient`,
+`kr.co.penta.ACRAPoint`).
+
+Measured 2026-10-21 with two same-named probe bundles registered through
+`lsregister`: `open -a <name>` resolves only from the standard app folders. With
+a copy in `~/Applications` it opened that copy every time, even right after the
+other copy had run; with no copy there it failed with *Unable to find
+application* and opened nothing. `open <path>` opened exactly that bundle (#2).
+
+`LaunchApp` waits for `open` and logs its output on failure. `open` returns once
+the launch is requested, so the wait is short; before, a failed `open` was never
+logged and the log always said *launched successfully*.
+
 ## What it deliberately leaves out
 
 - **The log file is not required.** `initLogger` warns on stderr and continues;
