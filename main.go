@@ -19,6 +19,9 @@ import (
 // Defaults to "dev" for plain `go build`. See README "Versioning & Release".
 var version = "dev"
 
+// launchApp relaunches the app bundle at the given path.
+var launchApp = launcher.LaunchApp
+
 func main() {
 	// 첫 번째 인자로 모드 확인
 	if len(os.Args) < 2 {
@@ -65,11 +68,7 @@ func handleRestartMode() {
 	appPath := os.Args[4]
 
 	// Logger 초기화
-	log := logger.GetInstance()
-	if err := log.Initialize(logFilePath); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
+	log := initLogger(logFilePath)
 
 	currentPid := os.Getpid()
 
@@ -101,11 +100,7 @@ func handleUpdateMode() {
 	backupPath := os.Args[6]
 
 	// Logger 초기화
-	log := logger.GetInstance()
-	if err := log.Initialize(logFilePath); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
+	log := initLogger(logFilePath)
 
 	currentPid := os.Getpid()
 
@@ -125,6 +120,16 @@ func handleUpdateMode() {
 	runUpdate(appPath, extractedFolderPath, backupPath)
 }
 
+// initLogger opens the log file and returns the logger. A logger that cannot
+// open its file writes to stderr, and the run continues.
+func initLogger(logFilePath string) *logger.Logger {
+	log := logger.GetInstance()
+	if err := log.Initialize(logFilePath); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger, continuing without a log file: %v\n", err)
+	}
+	return log
+}
+
 func runRestart(parentPid int, appPath string) {
 	log := logger.GetInstance()
 
@@ -134,7 +139,7 @@ func runRestart(parentPid int, appPath string) {
 	}
 
 	// 앱 재실행
-	launcher.LaunchApp(appPath)
+	launchApp(appPath)
 	log.Log("Restart completed, exiting...")
 	os.Exit(0)
 }
@@ -147,7 +152,7 @@ func runUpdate(appPath, extractedPath, backupPath string) {
 			log.Error(fmt.Errorf("panic: %v", r))
 			backup.CleanupUpdateDir(extractedPath)
 			backup.RollbackFromBackup(appPath, backupPath)
-			launcher.LaunchApp(appPath)
+			launchApp(appPath)
 			os.Exit(1)
 		}
 	}()
@@ -157,7 +162,7 @@ func runUpdate(appPath, extractedPath, backupPath string) {
 
 	// 1. 백업 (rename)
 	if !backup.MoveAppToBackup(appPath, backupPath) {
-		launcher.LaunchApp(appPath)
+		launchApp(appPath)
 		log.Log("Daemon exiting due to backup failure...")
 		os.Exit(1)
 	}
@@ -168,7 +173,7 @@ func runUpdate(appPath, extractedPath, backupPath string) {
 		log.Log(fmt.Sprintf("Extracted app not found: %s", updateAppPath))
 		backup.CleanupUpdateDir(extractedPath)
 		backup.RollbackFromBackup(appPath, backupPath)
-		launcher.LaunchApp(appPath)
+		launchApp(appPath)
 		os.Exit(1)
 	}
 	log.Log(fmt.Sprintf("Extracted app verified: %s", updateAppPath))
@@ -178,7 +183,7 @@ func runUpdate(appPath, extractedPath, backupPath string) {
 		log.Log("Failed to install new app, rolling back...")
 		backup.CleanupUpdateDir(extractedPath)
 		backup.RollbackFromBackup(appPath, backupPath)
-		launcher.LaunchApp(appPath)
+		launchApp(appPath)
 		os.Exit(1)
 	}
 
@@ -188,7 +193,7 @@ func runUpdate(appPath, extractedPath, backupPath string) {
 	backup.DeleteBackup(backupPath)
 
 	// 5. 앱 재실행
-	launcher.LaunchApp(appPath)
+	launchApp(appPath)
 	log.Log("Update exiting...")
 	os.Exit(0)
 }
