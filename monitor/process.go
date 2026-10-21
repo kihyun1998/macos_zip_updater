@@ -1,24 +1,29 @@
 package monitor
 
 import (
+	"errors"
 	"fmt"
-	"os/exec"
-	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/kihyun1998/macos_zip_updater/logger"
 )
 
 // IsProcessAlive 프로세스가 살아있는지 검사하는 함수
+// kill(pid, 0): no error or EPERM means the process exists, ESRCH means it
+// does not. A pid of 0 or below reads as exited.
 func IsProcessAlive(pid int) bool {
-	cmd := exec.Command("ps", "-p", strconv.Itoa(pid))
-	err := cmd.Run()
-	if err != nil {
-		log := logger.GetInstance()
-		log.Error(err)
+	if pid <= 0 {
 		return false
 	}
-	return true
+	err := syscall.Kill(pid, 0)
+	if err == nil || errors.Is(err, syscall.EPERM) {
+		return true
+	}
+	if !errors.Is(err, syscall.ESRCH) {
+		logger.GetInstance().Error(fmt.Errorf("kill(%d, 0): %w", pid, err))
+	}
+	return false
 }
 
 // MonitorParentProcess 부모 프로세스를 모니터링합니다.
